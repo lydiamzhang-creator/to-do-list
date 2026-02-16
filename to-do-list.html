@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>To-Do List</title>
+  <style>
+    body {
+      font-family: "Comic Sans MS", "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #ffd6f6, #c9f7ff, #d8ffd8);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: rgba(255,255,255,0.95);
+      width: 720px;
+      margin-top: 60px;
+      padding: 30px 35px 40px;
+      border-radius: 28px;
+      box-shadow: 0 20px 40px rgba(255,105,180,0.25);
+      border: 4px solid #fff0fb;
+      position: relative;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tabBtn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      background: #ffe6f7;
+    }
+
+    .activeTab {
+      background: linear-gradient(135deg, #ff9ad5, #a6e6ff);
+      color: white;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      color: #ff69b4;
+    }
+
+    ul { list-style: none; padding: 0; }
+
+    li {
+      margin: 12px 0;
+      display: flex;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #fff0fb, #f0fbff);
+      flex-wrap: wrap;
+    }
+
+    .dueSoon {
+      border: 2px dashed #ffb300;
+      background: #fff3cd;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 8px;
+      border-radius: 10px;
+      border: 2px solid #ffb3e6;
+    }
+
+    input[type="checkbox"] { transform: scale(1.2); }
+
+    input[type="date"] {
+      border-radius: 8px;
+      border: 2px solid #bde9ff;
+    }
+
+    .calendar {
+      display: none;
+    }
+
+    .calendarGrid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+
+    .day {
+      background: #fff0fb;
+      padding: 10px;
+      border-radius: 12px;
+      min-height: 70px;
+      font-size: 12px;
+    }
+
+    .day strong { display: block; }
+
+    .taskDot {
+      font-size: 11px;
+      background: #a6e6ff;
+      border-radius: 8px;
+      margin: 2px 0;
+      padding: 2px 4px;
+    }
+
+    .completed { text-decoration: line-through; opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    
+
+    <div id="listTab">
+      <div class="tabs">
+        <button class="tabBtn activeTab" onclick="showTab('list')">Home</button>
+        <button class="tabBtn" onclick="showTab('calendar')">Calendar</button>
+      </div>
+      <div class="header">
+        <h1>TO-DO LIST</h1>
+        <button onclick="addTask()">Add New Tasks</button>
+      </div>
+      <ul id="taskList"></ul>
+    </div>
+
+    <div id="calendarTab" class="calendar">
+      <button onclick="showTab('list')" style="margin-bottom:10px;padding:8px 14px;border:none;border-radius:12px;background:linear-gradient(135deg,#ff9ad5,#a6e6ff);color:white;font-weight:bold;cursor:pointer;">🏠 Home</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <button onclick="changeMonth(-1)" style="padding:6px 10px;border:none;border-radius:10px;background:#ffe6f7;cursor:pointer;">⬅️</button>
+      <h1 id="monthLabel">Calendar</h1>
+      <button onclick="changeMonth(1)" style="padding:6px 10px;border:none;border-radius:10px;background:#ffe6f7;cursor:pointer;">➡️</button>
+      </div>
+      <div id="calendar" class="calendarGrid"></div>
+    </div>
+
+  </div>
+
+<script>
+
+if ("Notification" in window && Notification.permission !== "granted") {
+  Notification.requestPermission();
+}
+
+function showTab(tab) {
+  document.getElementById("listTab").style.display = tab === "list" ? "block" : "none";
+  document.getElementById("calendarTab").style.display = tab === "calendar" ? "block" : "none";
+
+  document.querySelectorAll(".tabBtn").forEach(btn => btn.classList.remove("activeTab"));
+  event.target.classList.add("activeTab");
+
+  if (tab === "calendar") renderCalendar();
+}
+
+function addTask() {
+  const ul = document.getElementById("taskList");
+  const li = document.createElement("li");
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Enter your task";
+
+  const date = document.createElement("input");
+  date.type = "date";
+
+  checkbox.addEventListener("change", () => {
+    input.classList.toggle("completed", checkbox.checked);
+  });
+
+  date.addEventListener("change", () => {
+    checkDue(li, input, date);
+    renderCalendar();
+  });
+
+  const delBtn = document.createElement("button");
+  delBtn.textContent = "🗑️";
+  delBtn.style.border = "none";
+  delBtn.style.borderRadius = "8px";
+  delBtn.style.cursor = "pointer";
+  delBtn.style.background = "#ffd6f6";
+  delBtn.style.padding = "4px 8px";
+
+  delBtn.addEventListener("click", () => {
+    li.remove();
+    renderCalendar();
+  });
+
+  li.appendChild(checkbox);
+  li.appendChild(input);
+  li.appendChild(date);
+  li.appendChild(delBtn);
+
+  ul.appendChild(li);
+  input.focus();
+}
+
+function checkDue(li, input, date) {
+  if (!date.value) return;
+
+  const today = new Date();
+  const due = new Date(date.value);
+  const diffDays = (due - today) / (1000*60*60*24);
+
+  if (diffDays <= 2 && diffDays >= 0) {
+    li.classList.add("dueSoon");
+
+    if (Notification.permission === "granted") {
+      new Notification("⏰ Task due soon!", { body: input.value });
+    }
+  } else li.classList.remove("dueSoon");
+}
+
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+
+function changeMonth(dir){
+  currentMonth += dir;
+  if(currentMonth < 0){currentMonth = 11; currentYear--;}
+  if(currentMonth > 11){currentMonth = 0; currentYear++;}
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const cal = document.getElementById("calendar");
+  cal.innerHTML = "";
+
+  const tasks = [];
+  document.querySelectorAll("#taskList li").forEach(li => {
+    const text = li.querySelector("input[type='text']").value;
+    const date = li.querySelector("input[type='date']").value;
+    if (date) tasks.push({text, date});
+  });
+
+  const year = currentYear;
+  const month = currentMonth;
+
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  document.getElementById("monthLabel").textContent = monthNames[month] + " " + year;
+
+  const days = new Date(year, month+1, 0).getDate();
+
+  for (let d=1; d<=days; d++) {
+    const day = document.createElement("div");
+    day.className = "day";
+
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+    day.innerHTML = `<strong>${d}</strong>`;
+
+    tasks.forEach(t => {
+      if (t.date === dateStr) {
+        const dot = document.createElement("div");
+        dot.className = "taskDot";
+        dot.textContent = t.text || "Task";
+        day.appendChild(dot);
+      }
+    });
+
+    cal.appendChild(day);
+  }
+}
+
+setInterval(() => {
+  document.querySelectorAll("#taskList li").forEach(li => {
+    const input = li.querySelector("input[type='text']");
+    const date = li.querySelector("input[type='date']");
+    if (date) checkDue(li, input, date);
+  });
+}, 60000);
+
+</script>
+</body>
+</html>
